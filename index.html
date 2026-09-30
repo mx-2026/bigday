@@ -47,7 +47,7 @@ summary{font-size:.8rem;color:var(--mu);margin:4px 0}
 <script>
 const C=window.CFG,B=C.URL+'/rest/v1/items',$=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const K={run:{n:'時間軸',t:'time',nd:1,bt:1},cal:{n:'日曆',no:1,nd:1,t:'time',bt:1},game:{n:'遊戲'},prog:{n:'進度',no:1,nd:1},contact:{n:'電話',no:1,nd:1},task:{n:'任務',t:'date',bt:1},mine:{n:'我的清單'},pack:{n:'物資'},seat:{n:'座位',no:1},car:{n:'車隊',no:1,nd:1},music:{n:'歌單',nd:1},gold:{n:'金器'},person:{n:'人員',no:1,nd:1}};
+const K={run:{n:'時間軸',t:'time',nd:1,bt:1},cal:{n:'日曆',no:1,nd:1,t:'time',bt:1},game:{n:'遊戲'},prog:{n:'進度',no:1,nd:1},cd:{n:'倒數',no:1,nd:1,t:'date',bt:1},contact:{n:'電話',no:1,nd:1},task:{n:'任務',t:'date',bt:1},mine:{n:'我的清單'},pack:{n:'物資'},seat:{n:'座位',no:1},car:{n:'車隊',no:1,nd:1},music:{n:'歌單',nd:1},gold:{n:'金器'},person:{n:'人員',no:1,nd:1}};
 const q=new URLSearchParams(location.search),today=new Date().toISOString().slice(0,10),big=today==C.DATE;
 let PC=localStorage.bd_pc||'',D=[],cur=q.get('me')?'mine':big?'run':'task',sig='',eid=null,F=q.get('me')||localStorage.bd_f||'',HD=0,ord=0,sc=0,VIS=[];
 try{D=JSON.parse(localStorage.bd_d||'[]')}catch(e){}
@@ -63,13 +63,14 @@ async function load(f){try{const r=await fetch(B+'?select=upd&order=upd.desc&lim
  D=await(await fetch(B+'?select=*&order=sort,id',{headers:H()})).json();try{localStorage.bd_d=JSON.stringify(D)}catch(e){}draw()}catch(e){}}
 function tab(k){cur=k;sc=0;if(k=='contact'&&!PC){PC=prompt('電話簿需要通行碼')||'';localStorage.bd_pc=PC;load(1)}draw()}
 function draw(){const k=cur,c=K[k],T=D.filter(x=>x.kind=='task'),dn=T.filter(x=>x.done).length,d=Math.ceil((new Date(C.DATE)-new Date())/864e5);
- $('cd').textContent=(big?'🎉 今日大日子':d>0?`距離大日子 ${d} 日`:'Big Day')+`｜任務 ${dn}/${T.length}`;$('pg').style.width=(T.length?dn/T.length*100:0)+'%';
+ $('cd').textContent=(big?'🎉 今日大日子':d>0?`距離大日子 ${d} 日`:'Big Day')+`｜任務 ${dn}/${T.length}`+(nx=>nx?`｜下個：${nx.title} 尚有 ${dd(nx.tm)} 日`:'')(list('cd').find(x=>x.tm>=today));$('pg').style.width=(T.length?dn/T.length*100:0)+'%';
  $('tabs').innerHTML=Object.keys(K).map(x=>`<button class="${x==k?'on':''}" onclick="tab('${x}')">${K[x].n}</button>`).join('');
  $('tool').innerHTML=(c.no?'':`睇 <select onchange="F=this.value;localStorage.bd_f=F;draw()">${'<option value="">全部人</option>'+ppl().map(p=>`<option ${F==p.title?'selected':''}>${esc(p.title)}</option>`).join('')}</select>`)
   +(c.nd?'':`<label><input type="checkbox" ${HD?'checked':''} onchange="HD=this.checked;draw()"> 收起已完成</label>`)
   +(c.bt?'':`<button onclick="ord=!ord;draw()">${ord?'完成排序':'排序'}</button>`);
  if(k=='cal'){cal();return}
  if(k=='prog'){prog();return}
+ if(k=='cd'){cdv();return}
  const it=list(k).filter(x=>c.no||!F||x.owner==F).filter(x=>!HD||!x.done);VIS=it;
  let nid=0;if(big&&k=='run'){const n=new Date(),hm=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');it.forEach(x=>{if(x.tm&&x.tm<=hm)nid=x.id})}
  const gs=[...new Set(it.map(gk))];
@@ -86,6 +87,11 @@ function cal(){const L=list('run').filter(x=>x.tm),m=t=>{const[h,i]=t.split(':')
  if(big){const n=new Date(),a=n.getHours()*60+n.getMinutes();if(a>=S&&a<=E)h+=`<div class="nw" style="top:${(a-S)*P}px"></div>`}
  $('list').innerHTML=`<div class="cal" style="height:${(E-S)*P}px">${h}</div>`;
  if(big&&!sc){sc=1;const n=new Date();scrollTo(0,Math.max(0,(n.getHours()*60+n.getMinutes()-S)*P-150))}}
+const dd=t=>Math.round((Date.parse(t)-Date.parse(today))/864e5);
+const bd=t=>{const d=dd(t);return d>0?d+' 日':d==0?'今日':'過咗 '+-d+' 日'};
+function cdv(){const M=list('cd'),R=D.filter(x=>x.kind=='task'&&!x.done).sort((a,b)=>(a.tm||'9').localeCompare(b.tm||'9')||a.sort-b.sort);
+ $('list').innerHTML=`<h4>里程碑 · ${M.length}</h4><div>`+M.map(x=>`<div class="it${dd(x.tm)<0?' done':''}"><span class="t" style="width:70px">${bd(x.tm)}</span><div class="m" onclick="ed(${x.id})"><b>${esc(x.title)}</b><small>${esc(x.tm+' '+x.note)}</small></div></div>`).join('')+`</div><h4>剩餘任務 · ${R.length}</h4><div>`
+ +R.map(x=>`<div class="it"><button class="s" data-d="0" onclick="up(${x.id},{done:true})"></button><span class="t" style="width:70px;${x.tm&&dd(x.tm)<0?'color:#C0392B':''}">${x.tm?bd(x.tm):''}</span><div class="m" onclick="ed(${x.id})"><b>${esc(x.title)}</b><small>${esc([x.owner,x.grp,x.note].filter(Boolean).join(' · '))}</small></div></div>`).join('')+'</div>'}
 function prog(){const T=D.filter(x=>(x.kind=='task'||x.kind=='pack')),P=[...ppl().map(p=>p.title),''];
  const rw=(x,d)=>`<div class="it${d?' done':''}"><button class="s" data-d="${d}" onclick="up(${x.id},{done:${!d}})"></button><div class="m" onclick="ed(${x.id})"><b>${esc(x.title)}</b><small>${esc([x.kind=='task'?x.tm:'',x.grp].filter(Boolean).join(' · '))}</small></div></div>`;
  $('list').innerHTML=P.map(n=>{const a=T.filter(x=>x.owner==n),d=a.filter(x=>x.done),u=a.filter(x=>!x.done);if(!a.length)return'';
@@ -98,7 +104,7 @@ function fill(x){const c=K[cur];$('sh-t').textContent=(eid?'修改':'新增')+' 
 const add=()=>{eid=null;fill({})},ed=id=>{eid=id;fill(D.find(y=>y.id==id))};
 function clr(){$('sh').classList.remove('on');eid=null}
 const nxt=()=>Math.max(0,...list(cur).map(x=>x.sort))+1;
-async function save(){const t=$('f-title').value.trim();if(!t)return;const b={title:t,grp:$('f-grp').value,owner:K[cur].no?'':$('f-owner').value,tm:$('f-tm').value,note:$('f-note').value};
+async function save(){const t=$('f-title').value.trim();if(!t)return;const b={title:t,grp:$('f-grp').value,owner:K[cur].no&&!eid?'':$('f-owner').value,tm:$('f-tm').value,note:$('f-note').value};
  if(eid){const o=D.find(x=>x.id==eid);if(cur=='person'&&o.title!=t){await req('PATCH','?owner=eq.'+encodeURIComponent(o.title),{owner:t});if(F==o.title){F=t;localStorage.bd_f=t}}await w('PATCH','?id=eq.'+eid,b)}else w('POST','',{...b,kind:cur=='cal'?'run':cur,sort:nxt()});clr()}
 async function del(){if(!confirm('確定刪除？'))return;if(!PC){PC=prompt('刪除需要通行碼（問新人/伴娘）')||'';localStorage.bd_pc=PC}
  const r=await fetch(B+'?id=eq.'+eid,{method:'DELETE',headers:H({Prefer:'return=representation'})});const j=r.ok?await r.json():[];
