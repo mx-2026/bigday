@@ -60,7 +60,8 @@ const ppl=()=>D.filter(x=>x.kind=='person').sort((a,b)=>a.sort-b.sort||a.id-b.id
 const opts=v=>'<option value="">未分配</option>'+ppl().map(p=>`<option ${p.title==v?'selected':''}>${esc(p.title)}</option>`).join('');
 const list=k=>D.filter(x=>x.kind==(k=='cal'?'run':k)).filter(x=>1).sort((a,b)=>(K[k].bt?(a.tm||'99').localeCompare(b.tm||'99'):0)||a.sort-b.sort||a.id-b.id);
 const gk=x=>(cur=='mine'&&!F)?(x.owner||'未分配'):(x.grp||'（未分類）');
-async function req(m,p,b){const r=await fetch(B+p,{method:m,headers:H({Prefer:'return=minimal'}),body:b?JSON.stringify(b):undefined});if(!r.ok){alert('儲存失敗，請重試');throw 0}}
+async function req(m,p,b){const r=await fetch(B+p,{method:m,headers:H({Prefer:m=='PATCH'?'return=representation':'return=minimal'}),body:b?JSON.stringify(b):undefined});if(!r.ok){alert('儲存失敗，請重試');throw 0}
+ if(m=='PATCH'&&!(await r.json()).length){alert('冇更新到：通行碼可能錯誤，或者項目已被刪除');throw 0}}
 const w=async(m,p,b)=>{await req(m,p,b);load(1)};
 async function load(f){try{const r=await fetch(B+'?select=upd&order=upd.desc&limit=1',{headers:H({Prefer:'count=exact'})});if(!r.ok)return;
  const s=((await r.json())[0]||{}).upd+'|'+r.headers.get('content-range');if(!f&&s==sig)return;sig=s;
