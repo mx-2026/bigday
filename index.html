@@ -36,9 +36,10 @@ summary{font-size:.8rem;color:var(--mu);margin:4px 0}
 .cal{margin:4px 0 0}.ev{position:relative;left:auto;right:auto;white-space:normal;overflow:visible;display:flex;gap:10px;margin:0 0 3px;padding:7px 10px;scroll-margin-top:130px}
 .et{font-weight:600;color:var(--ac);width:46px;flex-shrink:0}.ev small{color:var(--mu)}.ev.cur{outline:2px solid #C0392B}.gh{font-size:.76rem;color:var(--mu);font-weight:600;margin:14px 0 6px;scroll-margin-top:130px}
 @media print{header,.fab,.tool{display:none!important}}
+#sub button{font-size:.78rem;padding:4px 12px;border:1px solid var(--ln);color:var(--mu)}#sub .on{background:var(--soft);color:var(--ac);border-color:var(--ac)}
 </style></head><body>
 <header><h1>💍 1107 Big Day</h1><div class="sub" id="cd"></div><div class="bar"><i id="pg" style="width:0"></i></div>
-<div class="tabs" id="tabs"></div><div class="tool" id="tool"></div></header>
+<div class="tabs" id="tabs"></div><div class="tabs" id="sub"></div><div class="tool" id="tool"></div></header>
 <div id="list"></div>
 <button class="fab" onclick="add()">＋</button><button class="fab" id="jn" style="left:18px;right:auto;width:auto;padding:0 18px;font-size:.9rem;border-radius:27px;display:none" onclick="$('now')?.scrollIntoView({block:'center',behavior:'smooth'})">⏱ 而家</button>
 <div class="sh" id="sh" onclick="if(event.target==this)clr()"><div class="box"><b id="sh-t"></b>
@@ -50,7 +51,7 @@ summary{font-size:.8rem;color:var(--mu);margin:4px 0}
 <script>
 const C=window.CFG,B=C.URL+'/rest/v1/items',$=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const K={run:{n:'時間軸',t:'time',nd:1,bt:1,x:1},cal:{n:'日曆',no:1,nd:1,t:'time',bt:1},game:{n:'遊戲',x:1},prog:{n:'進度',no:1,nd:1},cd:{n:'倒數',no:1,nd:1,t:'date',bt:1},contact:{n:'電話',no:1,nd:1},task:{n:'任務',t:'date',bt:1},mine:{n:'我的清單'},pack:{n:'物資',x:1},seat:{n:'座位',no:1},car:{n:'車隊',no:1,nd:1},music:{n:'歌單',nd:1,x:1},gold:{n:'金器',x:1},person:{n:'人員',no:1,nd:1,x:1}};
+const K={run:{n:'流程清單',t:'time',nd:1,bt:1,x:1},cal:{n:'日曆',no:1,nd:1,t:'time',bt:1},game:{n:'遊戲',x:1},prog:{n:'進度',no:1,nd:1},cd:{n:'倒數',no:1,nd:1,t:'date',bt:1},contact:{n:'電話',no:1,nd:1},task:{n:'任務',t:'date',bt:1},mine:{n:'我的清單'},pack:{n:'物資',x:1},seat:{n:'座位',no:1},car:{n:'車隊',no:1,nd:1},music:{n:'歌單',nd:1,x:1},gold:{n:'金器',x:1},person:{n:'人員',no:1,nd:1,x:1}};
 const q=new URLSearchParams(location.search),today=new Date().toISOString().slice(0,10),big=today==C.DATE;
 let PC=localStorage.bd_pc||'',D=[],cur=q.get('me')?'mine':big?'cal':'task',sig='',eid=null,F=q.get('me')||localStorage.bd_f||'',HD=0,MO=0,ord=0,sc=0,VIS=[];
 try{D=JSON.parse(localStorage.bd_d||'[]')}catch(e){}
@@ -67,8 +68,10 @@ async function load(f){try{const r=await fetch(B+'?select=upd&order=upd.desc&lim
 function tab(k){cur=k;sc=0;if(k=='contact'&&!PC){PC=prompt('電話簿需要通行碼')||'';localStorage.bd_pc=PC;load(1)}draw()}
 function draw(){const k=cur,c=K[k],T=D.filter(x=>x.kind=='task'),dn=T.filter(x=>x.done).length,d=Math.ceil((new Date(C.DATE)-new Date())/864e5);
  $('cd').textContent=(big?'🎉 今日大日子':d>0?`距離大日子 ${d} 日`:'Big Day')+`｜任務 ${dn}/${T.length}`+(nx=>nx?`｜下個：${nx.title} 尚有 ${dd(nx.tm)} 日`:'')(list('cd').find(x=>x.tm>=today));$('pg').style.width=(T.length?dn/T.length*100:0)+'%';
- const ORD=['cal','task','cd','mine','prog','seat','car','contact','run','pack','game','music','gold','person'];$('jn').style.display=(k=='cal'&&big)?'':'none';
- $('tabs').innerHTML=ORD.filter(x=>!K[x].x||MO||x==k).map(x=>`<button class="${x==k?'on':''}" onclick="tab('${x}')">${K[x].n}</button>`).join('')+`<button onclick="MO=!MO;draw()">${MO?'收起 ▴':'更多 ▾'}</button>`;
+ const GR=[['流程',['cal','run']],['任務',['task','cd','prog']],['我的',['mine','pack']],['現場',['seat','car','contact']],['內容',['music','game','gold','person']]],gp=GR.find(g=>g[1].includes(k))||GR[0];
+ $('jn').style.display=(k=='cal'&&big)?'':'none';
+ $('tabs').innerHTML=GR.map(g=>`<button class="${g==gp?'on':''}" onclick="tab('${g[1][0]}')">${g[0]}</button>`).join('');
+ $('sub').innerHTML=gp[1].map(x=>`<button class="${x==k?'on':''}" onclick="tab('${x}')">${K[x].n}</button>`).join('');
  $('tool').innerHTML=(c.no?'':`睇 <select onchange="F=this.value;localStorage.bd_f=F;draw()">${'<option value="">全部人</option>'+ppl().map(p=>`<option ${F==p.title?'selected':''}>${esc(p.title)}</option>`).join('')}</select>`)
   +(c.nd?'':`<label><input type="checkbox" ${HD?'checked':''} onchange="HD=this.checked;draw()"> 收起已完成</label>`)
   +(c.bt?'':`<button onclick="ord=!ord;draw()">${ord?'完成排序':'排序'}</button>`);
