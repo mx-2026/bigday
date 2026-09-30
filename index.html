@@ -18,29 +18,28 @@ h4{font-size:.8rem;color:#B9793A;margin:12px 0 6px;border-left:3px solid #E8A94A
 .tag{font-size:.62rem;padding:1px 7px;border-radius:10px;color:#fff;margin-left:4px}
 #lock{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9}#lock div{background:#fff;border-radius:16px;padding:20px;text-align:center}#lock input{margin:10px;padding:8px}
 </style></head><body>
-<div id="lock"><div><p>請輸入通行碼</p><input id="pc" type="password"><br><button class="btn" onclick="setPC()">確認</button></div></div>
-<div class="card"><h1><span>💍 1107 Big Day</span><button onclick="ask()" style="border:0;background:none;font-size:1.1rem">🔑</button></h1><div class="sub" id="cd"></div><div class="bar"><i id="pg" style="width:0"></i></div></div>
+<div class="card"><h1><span>💍 1107 Big Day</span></h1><div class="sub" id="cd"></div><div class="bar"><i id="pg" style="width:0"></i></div></div>
 <div class="row" id="tabs"></div><div class="row" id="who"></div>
 <div class="card"><div id="list"></div>
-<div class="f"><input id="f-title" placeholder="內容 *" style="flex:3"><input id="f-grp" list="gl" placeholder="分類/枱號"><datalist id="gl"></datalist><select id="f-owner"></select><input id="f-tm"><input id="f-note" placeholder="備註"><button class="btn" id="f-go" onclick="save()">新增</button><button class="btn" id="f-x" style="display:none;background:#999" onclick="clr()">取消</button></div></div>
+<div class="f"><input id="f-title" placeholder="內容 *" style="flex:3"><input id="f-grp" list="gl" placeholder="分類/枱號"><datalist id="gl"></datalist><select id="f-owner"></select><input id="f-tm"><input id="f-note" placeholder="備註"><button class="btn" id="f-go" onclick="save()">新增</button><button class="btn" id="f-x" style="display:none;background:#999" onclick="clr()">取消</button></div>
+<details style="margin-top:10px"><summary style="cursor:pointer;font-size:.8rem;color:#B9793A">批量新增（每行：分類,內容）</summary><textarea id="bk" rows="5" style="width:100%;margin-top:6px;padding:8px;border:1px solid #DAD7D2;border-radius:12px" placeholder="3,小明&#10;3,小華&#10;只寫內容就用上面「分類」欄"></textarea><button class="btn" onclick="bulk()">批量加入</button></details></div>
 <script src="config.js"></script>
 <script>
 const C=window.CFG,B=C.URL+'/rest/v1/items',$=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const K={task:{n:'任務',g:['極急','R1','Buffer','R2','R3','當日'],tm:'date'},run:{n:'Run-down',g:['寶琳女家','西貢 WM','銅鑼灣柏寧'],tm:'time',bt:1,nd:1},
  music:{n:'🎵歌單',g:['行禮','掟花球','迎賓','晚宴進場','敬酒','送客'],tgt:{行禮:1,掟花球:2,迎賓:15,晚宴進場:1,敬酒:8}},pack:{n:'物資',g:['女家出門','證婚 WM','柏寧晚宴','伴娘隨身']},
- seat:{n:'座位',g:[],no:1},gold:{n:'金器',g:['朝早','晚上']},person:{n:'人員',g:[],no:1,nd:1}};
+ mine:{n:'我的清單',g:['隨身裝備','當日行動','突發應變'],by:1},seat:{n:'座位',g:[],no:1},gold:{n:'金器',g:['朝早','晚上']},person:{n:'人員',g:[],no:1,nd:1}};
 const PAL=['#D9738A','#5B7FBF','#E8A94A','#3F7A48','#C77DBA','#B9793A','#7A9E9F','#4A6FA5','#6B8E23','#8A5A9E','#999'];
-let PC=localStorage.bd_pc||'',D=[],cur='task',sig='',eid=null,F=new URLSearchParams(location.search).get('me')||localStorage.bd_f||'';
+let PC=localStorage.bd_pc||'',D=[],cur=new URLSearchParams(location.search).get('me')?'mine':'task',sig='',eid=null,F=new URLSearchParams(location.search).get('me')||localStorage.bd_f||'';
 const H=x=>({apikey:C.KEY,'x-pin':PC,'Content-Type':'application/json',...x});
 const ppl=()=>D.filter(x=>x.kind=='person').sort((a,b)=>a.sort-b.sort||a.id-b.id);
 const col=n=>{const i=ppl().findIndex(p=>p.title==n);return i<0?'#E8A94A':PAL[i%PAL.length]};
 const opts=v=>'<option value="">未分配</option>'+ppl().map(p=>`<option ${p.title==v?'selected':''}>${esc(p.title)}</option>`).join('');
-const list=k=>D.filter(x=>x.kind==k).sort((a,b)=>K[k].bt?(a.tm||'').localeCompare(b.tm||'')||a.sort-b.sort:a.sort-b.sort||a.id-b.id);
-function ask(){$('lock').style.display='flex'}
-function setPC(){PC=$('pc').value;localStorage.bd_pc=PC;$('lock').style.display='none';load(1)}
-async function w(m,p,b,pref){const r=await fetch(B+p,{method:m,headers:H({Prefer:'return=minimal'+(pref?','+pref:'')}),body:b?JSON.stringify(b):undefined});if(!r.ok){ask();throw 0}load(1)}
-async function load(f){try{const r=await fetch(B+'?select=upd&order=upd.desc&limit=1',{headers:H({Prefer:'count=exact'})});if(!r.ok){ask();return}
+const list=k=>D.filter(x=>x.kind==k).sort((a,b)=>K[k].bt?(a.tm||'99').localeCompare(b.tm||'99')||a.sort-b.sort:a.sort-b.sort||a.id-b.id);
+function pin(){if(!PC){PC=prompt('刪除需要通行碼（問新人/伴娘）')||'';localStorage.bd_pc=PC}return PC}
+async function w(m,p,b,pref){const r=await fetch(B+p,{method:m,headers:H({Prefer:'return=minimal'+(pref?','+pref:'')}),body:b?JSON.stringify(b):undefined});if(!r.ok){alert('儲存失敗，請重試');throw 0}load(1)}
+async function load(f){try{const r=await fetch(B+'?select=upd&order=upd.desc&limit=1',{headers:H({Prefer:'count=exact'})});if(!r.ok)return;
  const s=((await r.json())[0]||{}).upd+'|'+r.headers.get('content-range');if(!f&&s==sig)return;sig=s;
  D=await(await fetch(B+'?select=*&order=sort,id',{headers:H()})).json();draw()}catch(e){}}
 function sf(n){F=F==n?'':n;localStorage.bd_f=F;draw()}
@@ -49,21 +48,22 @@ function draw(){const k=cur,c=K[k],tk=D.filter(x=>x.kind=='task'),dn=tk.filter(x
  $('cd').textContent=(d>0?`⏳ 距離大日子 ${d} 日`:'🎉 Big Day')+`｜任務 ${dn}/${tk.length}`;$('pg').style.width=(tk.length?dn/tk.length*100:0)+'%';
  $('tabs').innerHTML=Object.keys(K).map(x=>`<button class="${x==k?'on':''}" onclick="tab('${x}')">${K[x].n}</button>`).join('');
  $('who').innerHTML=c.no?'':`<button class="${F?'':'on'}" onclick="sf('')">全部</button>`+ppl().map(p=>`<button class="${F==p.title?'on':''}" data-n="${esc(p.title)}" onclick="sf(this.dataset.n)">${esc(p.title)}</button>`).join('');
- const it=list(k).filter(x=>c.no||!F||x.owner==F),gs=[...new Set([...(c.tgt?c.g:[]),...c.g.filter(g=>it.some(x=>x.grp==g)),...it.map(x=>x.grp)])];
+ const it=list(k).filter(x=>c.no||!F||x.owner==F),gf=x=>c.by?x.owner:x.grp,gs=c.by?ppl().map(p=>p.title).filter(n=>it.some(x=>x.owner==n)):[...new Set([...(c.tgt?c.g:[]),...c.g.filter(g=>it.some(x=>x.grp==g)),...it.map(x=>x.grp)])];
  const today=new Date().toISOString().slice(0,10);
- $('list').innerHTML=(D.length?'':'<p>暫無資料（如果應該有，㩒右上 🔑 檢查通行碼）</p>')+gs.map(g=>{const V=it.filter(x=>x.grp==g);
+ $('list').innerHTML=(D.length?'':'<p>暫無資料（載入中…）</p>')+gs.map(g=>{const V=it.filter(x=>gf(x)==g);
   return (g||k=='person'?'':'')+`<h4>${esc(g||'（未分類）')} · ${c.tgt?V.length+'/'+(c.tgt[g]||'?'):c.nd?V.length:V.filter(x=>x.done).length+'/'+V.length}</h4>`+V.map(x=>`<div class="it ${x.done?'done':''}" style="--c:${col(x.owner)}">${c.nd?'':`<button class="s" data-d="${x.done?1:0}" onclick="up(${x.id},{done:${!x.done}})"></button>`}
-  <div class="m"><b>${k=='run'?esc(x.tm)+' ':''}${esc(x.title)}</b>${x.owner?`<span class="tag" style="background:${col(x.owner)}">${esc(x.owner)}</span>`:''}<small class="${k=='task'&&x.tm&&x.tm<today&&!x.done?'late':''}">${k=='task'&&x.tm?x.tm+' ':''}${esc(x.note)}</small></div>
+  <div class="m"><b>${k=='run'?esc(x.tm)+' ':''}${esc(x.title)}</b>${(c.by?x.grp:x.owner)?`<span class="tag" style="background:${col(x.owner)}">${esc(c.by?x.grp:x.owner)}</span>`:''}<small class="${k=='task'&&x.tm&&x.tm<today&&!x.done?'late':''}">${k=='task'&&x.tm?x.tm+' ':''}${esc(x.note)}</small></div>
   <div class="a">${c.no?'':`<select onchange="up(${x.id},{owner:this.value})">${opts(x.owner)}</select>`}${c.bt?'':`<button onclick="mv(${x.id},-1)">↑</button><button onclick="mv(${x.id},1)">↓</button>`}<button onclick="ed(${x.id})">改</button><button onclick="del(${x.id})">刪</button></div></div>`).join('')}).join('');
- $('gl').innerHTML=gs.map(g=>`<option value="${esc(g)}">`).join('');$('f-owner').style.display=c.no?'none':'';$('f-tm').style.display=c.tm?'':'none';$('f-tm').type=c.tm||'text';if(!eid&&!$('f-owner').innerHTML)$('f-owner').innerHTML=opts('');}
+ $('gl').innerHTML=(c.by?c.g:gs).map(g=>`<option value="${esc(g)}">`).join('');$('f-owner').style.display=c.no?'none':'';$('f-tm').style.display=c.tm?'':'none';$('f-tm').type=c.tm||'text';if(!eid&&!$('f-owner').innerHTML)$('f-owner').innerHTML=opts('');}
 const up=(id,b)=>w('PATCH','?id=eq.'+id,b);
-function del(id){if(confirm('確定刪除？'))w('DELETE','?id=eq.'+id)}
+async function del(id){if(!confirm('確定刪除？'))return;pin();const r=await fetch(B+'?id=eq.'+id,{method:'DELETE',headers:H({Prefer:'return=representation'})});const j=r.ok?await r.json():[];if(!j.length){PC='';localStorage.removeItem('bd_pc');alert('通行碼錯誤，未能刪除')}load(1)}
 function ed(id){const x=D.find(y=>y.id==id);eid=id;$('f-title').value=x.title;$('f-grp').value=x.grp;$('f-owner').innerHTML=opts(x.owner);$('f-tm').value=x.tm;$('f-note').value=x.note;$('f-go').textContent='儲存';$('f-x').style.display='';scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}
 function clr(){eid=null;['f-title','f-tm','f-note'].forEach(i=>$(i).value='');$('f-owner').innerHTML=opts(F);$('f-go').textContent='新增';$('f-x').style.display='none'}
 function save(){const t=$('f-title').value.trim();if(!t)return;const b={title:t,grp:$('f-grp').value,owner:$('f-owner').value,tm:$('f-tm').value,note:$('f-note').value};
  if(eid)w('PATCH','?id=eq.'+eid,b);else w('POST','',{...b,kind:cur,sort:list(cur).length+1});clr()}
+function bulk(){const g0=$('f-grp').value,o=$('f-owner').value,n=list(cur).length;const r=$('bk').value.split('\n').map(s=>s.trim()).filter(Boolean).map((s,i)=>{const p=s.split(/[,，]/),hg=p.length>1;return{kind:cur,grp:hg?p[0].trim():g0,title:(hg?p.slice(1).join(','):s).trim(),owner:o,sort:n+i+1}});if(r.length){w('POST','',r);$('bk').value=''}}
 async function mv(id,d){const g=D.find(x=>x.id==id).grp,c=K[cur],V=list(cur).filter(x=>(c.no||!F||x.owner==F)&&x.grp==g),i=V.findIndex(x=>x.id==id),o=V[i+d];if(!o)return;
  const L=list(cur),a=L.findIndex(x=>x.id==id),b=L.findIndex(x=>x.id==o.id);[L[a],L[b]]=[L[b],L[a]];
  w('POST','?on_conflict=id',L.map((x,n)=>({id:x.id,kind:x.kind,title:x.title,sort:n+1})),'resolution=merge-duplicates')}
-if(!PC)ask();load(1);setInterval(()=>{if(!document.hidden)load()},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+load(1);setInterval(()=>{if(!document.hidden)load()},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 </script></body></html>
